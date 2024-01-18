@@ -13,11 +13,11 @@ class GraphDatabaseDriver:
 
     def create_node(self, node_id):
         with self.driver.session(database=self.db_name) as session:
-            session.write_transaction(self._create_node_tx, node_id)
+            session.execute_write(self._create_node_tx, node_id)
 
     def create_edge(self, source, target, weight):
         with self.driver.session(database=self.db_name) as session:
-            session.write_transaction(self._create_edge_tx, source, target, weight)
+            session.execute_write(self._create_edge_tx, source, target, weight)
 
     @staticmethod
     def _create_node_tx(tx, node_id):
