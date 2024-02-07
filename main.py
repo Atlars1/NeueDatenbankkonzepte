@@ -166,6 +166,30 @@ def find_and_display_multi_point_path(db_driver, G, positions, nodes):
     plt.axis('off')
     plt.show()
 
+def find_shortest_path_by_nodes_and_draw(G, positions, start_node, end_node):
+    try:
+        path = nx.shortest_path(G, source=start_node, target=end_node)
+        print(f"Kürzester Weg von {start_node} nach {end_node}: {path}")
+
+        # Visualisierung
+        plt.figure(figsize=(10, 8))
+        nx.draw(G, pos=positions, with_labels=True, node_color='skyblue', node_size=500)
+
+        # Gewichte der Kanten holen und anzeigen
+        edge_weights = nx.get_edge_attributes(G, 'weight')
+        nx.draw_networkx_edge_labels(G, pos=positions, edge_labels=edge_weights)
+
+        # Hervorheben des kürzesten Weges
+        path_edges = list(zip(path, path[1:]))
+        nx.draw_networkx_nodes(G, pos=positions, nodelist=path, node_color='red', node_size=500)
+        nx.draw_networkx_edges(G, pos=positions, edgelist=path_edges, edge_color='red', width=2)
+
+        plt.show()
+        return path
+    except nx.NetworkXNoPath:
+        print(f"Kein Pfad gefunden zwischen {start_node} und {end_node}.")
+        return None
+
 
 if __name__ == "__main__":
     db_driver, G, positions = create_and_store_graph2()

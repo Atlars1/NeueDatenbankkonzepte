@@ -1,7 +1,7 @@
 from main import create_and_store_graph
 from main import find_and_display_shortest_path
 from main import find_and_display_multi_point_path
-
+from main import find_shortest_path_by_nodes_and_draw
 
 
 def Interface():
@@ -9,7 +9,6 @@ def Interface():
     db_driver, G, positions = create_and_store_graph(GraphErstellen())
     nodes = SEKnoten()
     WegTyp(nodes, db_driver, G, positions)
-    find_and_display_shortest_path(db_driver, G, positions)
     db_driver.close()
     BlackList(nodes, db_driver, G, positions)
     
@@ -25,9 +24,12 @@ def WegTyp(Weg, db_driver, G, positions):
     a = input("Bitte wähle aus folgenden Möglichkeiten \n1 für kürzesten Weg \n2 für wenigste Knoten\n")
     if a == '1':
         Zwischenziel(Weg, db_driver, G, positions)
+        find_and_display_multi_point_path(db_driver, G, positions, Weg)
         # prüfung auf direktverbindung
     elif a == '2':
-        Zwischenziel(Weg, db_driver, G, positions)
+        start_node = Weg[0]
+        end_node = Weg[1]
+        find_shortest_path_by_nodes_and_draw(G, positions, start_node, end_node)
     else:
         print('Ungültige Eingabe')
         WegTyp()
