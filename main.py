@@ -34,9 +34,40 @@ def assign_random_coordinates(G, scale=100):
         positions[node] = (random.uniform(0, scale), random.uniform(0, scale))
     return positions
 
-def create_and_store_graph():
+def create_and_store_graph2():
     n = int(input("Geben Sie die Anzahl der Knoten ein: "))
     p = float(input("Geben Sie die Wahrscheinlichkeit für Kanten ein (0-1): "))
+
+    G = nx.erdos_renyi_graph(n, p)
+    for (u, v) in G.edges():
+        G.edges[u, v]['weight'] = random.randint(1, 20)
+
+    uri = "neo4j://localhost:7687"
+    user = "neo4j"
+    password = "dklrtenzu011001010101"
+    db_name = "neo4j"
+
+    db_driver = GraphDatabaseDriver(uri, user, password, db_name)
+    for node in G.nodes():
+        db_driver.create_node(node)
+    for source, target, data in G.edges(data=True):
+        db_driver.create_edge(source, target, data['weight'])
+
+    positions = assign_random_coordinates(G)
+
+    # Plot the graph
+    plt.figure(figsize=(10, 8))
+    nx.draw(G, pos=positions, with_labels=True, node_size=700, node_color='skyblue')
+    edge_labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx_edge_labels(G, pos=positions, edge_labels=edge_labels)
+    plt.axis('off')
+    plt.show()
+
+    return db_driver, G, positions
+
+def create_and_store_graph(Knoten):
+    n = Knoten
+    p = 1
 
     G = nx.erdos_renyi_graph(n, p)
     for (u, v) in G.edges():
@@ -97,7 +128,46 @@ def find_and_display_shortest_path(db_driver, G, positions):
     else:
         print("Kein Pfad gefunden.")
 
+
+
+def find_and_display_multi_point_path(db_driver, G, positions, nodes):
+    total_path_nodes = []
+    total_path_edges = []
+    total_weight = 0
+
+    for i in range(len(nodes) - 1):
+        start_node = nodes[i]
+        end_node = nodes[i + 1]
+
+        path_result = find_shortest_path(db_driver, start_node, end_node)
+        if path_result:
+            print(f"Teilstrecke von {start_node} nach {end_node}: ", path_result["path"])
+            print("Gewicht der Teilstrecke: ", path_result["weight"])
+            
+            path_nodes = [node["id"] for node in path_result["path"].nodes]
+            path_edges = list(zip(path_nodes, path_nodes[1:]))
+            
+            total_path_nodes.extend(path_nodes if i == 0 else path_nodes[1:])
+            total_path_edges.extend(path_edges)
+            total_weight += path_result["weight"]
+        else:
+            print(f"Kein Pfad gefunden von {start_node} nach {end_node}.")
+            return
+
+    print("Gesamter Pfad: ", total_path_nodes)
+    print("Gesamtgewicht: ", total_weight)
+
+    plt.figure(figsize=(10, 8))
+    nx.draw(G, pos=positions, with_labels=True, node_size=700, node_color='skyblue')
+    nx.draw_networkx_nodes(G, pos=positions, nodelist=total_path_nodes, node_color='red', node_size=700)
+    nx.draw_networkx_edges(G, pos=positions, edgelist=total_path_edges, edge_color='red', width=2)
+    edge_labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx_edge_labels(G, pos=positions, edge_labels=edge_labels)
+    plt.axis('off')
+    plt.show()
+
+
 if __name__ == "__main__":
-    db_driver, G, positions = create_and_store_graph()
+    db_driver, G, positions = create_and_store_graph2()
     find_and_display_shortest_path(db_driver, G, positions)
     db_driver.close()

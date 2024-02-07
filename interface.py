@@ -1,12 +1,15 @@
 from main import create_and_store_graph
 from main import find_and_display_shortest_path
+from main import find_and_display_multi_point_path
 
 def Interface():
-    db_driver, G, positions = create_and_store_graph()
+    verkehrsmittel = Verkehrsmittel()
+    db_driver, G, positions = create_and_store_graph(GraphErstellen())
+    # Beispielaufruf der Funktion
+    nodes = [0, 3, 2] # Liste der Knoten, die verbunden werden sollen
+    find_and_display_multi_point_path(db_driver, G, positions, nodes)
     find_and_display_shortest_path(db_driver, G, positions)
     db_driver.close()
-    verkehrsmittel = Verkehrsmittel()
-    GraphErstellen()
     BlackList()
     WegTyp()
     # Wegfindung
@@ -15,6 +18,7 @@ def GraphErstellen():
     print('Wie viele Knoten soll dein Graph haben: ')
     Knoten = intConverter()
     print(Knoten)
+    return Knoten
 
 
 def WegTyp():
