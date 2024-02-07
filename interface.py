@@ -2,17 +2,17 @@ from main import create_and_store_graph
 from main import find_and_display_shortest_path
 from main import find_and_display_multi_point_path
 
+
+
 def Interface():
     verkehrsmittel = Verkehrsmittel()
     db_driver, G, positions = create_and_store_graph(GraphErstellen())
-    # Beispielaufruf der Funktion
-    nodes = [0, 3, 2] # Liste der Knoten, die verbunden werden sollen
-    find_and_display_multi_point_path(db_driver, G, positions, nodes)
+    nodes = SEKnoten()
+    WegTyp(nodes, db_driver, G, positions)
     find_and_display_shortest_path(db_driver, G, positions)
     db_driver.close()
-    BlackList()
-    WegTyp()
-    # Wegfindung
+    BlackList(nodes, db_driver, G, positions)
+    
 
 def GraphErstellen():
     print('Wie viele Knoten soll dein Graph haben: ')
@@ -21,28 +21,29 @@ def GraphErstellen():
     return Knoten
 
 
-def WegTyp():
+def WegTyp(Weg, db_driver, G, positions):
     a = input("Bitte wähle aus folgenden Möglichkeiten \n1 für kürzesten Weg \n2 für wenigste Knoten\n")
     if a == '1':
-        Zwischenziel()
+        Zwischenziel(Weg, db_driver, G, positions)
         # prüfung auf direktverbindung
     elif a == '2':
-        Zwischenziel()
+        Zwischenziel(Weg, db_driver, G, positions)
     else:
         print('Ungültige Eingabe')
         WegTyp()
 
-def Zwischenziel():
+def Zwischenziel(Weg, db_driver, G, positions):
     b = input("Möchtest du ein Zwischenziel \ny/n \n")
     if b == 'y':
         print('Welchen?')
         ZZ = intConverter()
-        return ZZ
+        Weg.append(ZZ)
+        find_and_display_multi_point_path(db_driver, G, positions, Weg)
     elif b == 'n':
         print(b)
     else:
         print('Ungültige Eingabe')
-        Zwischenziel()
+        Zwischenziel(Weg, db_driver, G, positions)
     
 
 def Verkehrsmittel():
@@ -54,7 +55,7 @@ def Verkehrsmittel():
         Verkehrsmittel()
     return e
 
-def BlackList():
+def BlackList(Weg, db_driver, G, positions):
     b = input("Möchtest du einen Punkt vermeiden \ny/n \n")
     if b == 'y':
         print('Welchen?')
@@ -64,7 +65,7 @@ def BlackList():
         print(b)
     else:
         print('Ungültige Eingabe')
-        Zwischenziel()
+        Zwischenziel(Weg, db_driver, G, positions)
     
     # f auf blachlist setzen
 
@@ -78,6 +79,15 @@ def intConverter():
         print("Das ist keine gültige Zahl. Bitte geben Sie eine ganze Zahl ein.")
         return intConverter()
     
+def SEKnoten():
+    SEK = []
+    print('Gib mir einen Startknoten:')
+    a = intConverter()
+    print('Gib mir einen Endknoten:')
+    b = intConverter()
+    SEK.append(a)
+    SEK.append(b)
+    return (SEK)
     
     
 
