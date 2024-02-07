@@ -1,5 +1,4 @@
 from main import create_and_store_graph
-from main import find_and_display_shortest_path
 from main import find_and_display_multi_point_path
 from main import find_shortest_path_by_nodes_and_draw
 
