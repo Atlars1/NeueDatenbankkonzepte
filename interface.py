@@ -1,4 +1,10 @@
+from main import create_and_store_graph
+from main import find_and_display_shortest_path
+
 def Interface():
+    db_driver, G, positions = create_and_store_graph()
+    find_and_display_shortest_path(db_driver, G, positions)
+    db_driver.close()
     verkehrsmittel = Verkehrsmittel()
     GraphErstellen()
     BlackList()
