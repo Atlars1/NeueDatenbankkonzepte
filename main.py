@@ -11,13 +11,15 @@ class GraphDatabaseDriver:
     def close(self):
         self.driver.close()
 
+    # Corrected method
     def create_node(self, node_id):
         with self.driver.session(database=self.db_name) as session:
-            session.execute_write(self._create_node_tx, node_id)
+            session.write_transaction(self._create_node_tx, node_id)
 
+    # Corrected method
     def create_edge(self, source, target, weight):
         with self.driver.session(database=self.db_name) as session:
-            session.execute_write(self._create_edge_tx, source, target, weight)
+            session.write_transaction(self._create_edge_tx, source, target, weight)
 
     @staticmethod
     def _create_node_tx(tx, node_id):
@@ -28,170 +30,99 @@ class GraphDatabaseDriver:
         tx.run(f"MATCH (a:Node {{id: {source}}}), (b:Node {{id: {target}}}) "
                f"CREATE (a)-[:CONNECTS {{weight: {weight}}}]->(b)")
 
-def assign_random_coordinates(G, scale=100):
-    positions = {}
-    for node in G.nodes():
-        positions[node] = (random.uniform(0, scale), random.uniform(0, scale))
-    return positions
+class GraphUtils:
+    @staticmethod
+    def assign_random_coordinates(G, scale=100):
+        positions = {}
+        for node in G.nodes():
+            positions[node] = (random.uniform(0, scale), random.uniform(0, scale))
+        return positions
 
-def create_and_store_graph2():
-    n = int(input("Geben Sie die Anzahl der Knoten ein: "))
-    p = float(input("Geben Sie die Wahrscheinlichkeit für Kanten ein (0-1): "))
+    @staticmethod
+    def find_shortest_path(G, positions, start_node, end_node):
+        path = nx.shortest_path(G, source=start_node, target=end_node, weight='weight')
+        length = nx.shortest_path_length(G, source=start_node, target=end_node, weight='weight')
+        GraphUtils.plot_path(G, positions, path)
+        return path, length
 
-    G = nx.erdos_renyi_graph(n, p)
-    for (u, v) in G.edges():
-        G.edges[u, v]['weight'] = random.randint(1, 20)
-
-    uri = "neo4j://localhost:7687"
-    user = "neo4j"
-    password = "dklrtenzu011001010101"
-    db_name = "neo4j"
-
-    db_driver = GraphDatabaseDriver(uri, user, password, db_name)
-    for node in G.nodes():
-        db_driver.create_node(node)
-    for source, target, data in G.edges(data=True):
-        db_driver.create_edge(source, target, data['weight'])
-
-    positions = assign_random_coordinates(G)
-
-    # Plot the graph
-    plt.figure(figsize=(10, 8))
-    nx.draw(G, pos=positions, with_labels=True, node_size=700, node_color='skyblue')
-    edge_labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos=positions, edge_labels=edge_labels)
-    plt.axis('off')
-    plt.show()
-
-    return db_driver, G, positions
-
-def create_and_store_graph(Knoten):
-    n = Knoten
-    p = 1
-
-    G = nx.erdos_renyi_graph(n, p)
-    for (u, v) in G.edges():
-        G.edges[u, v]['weight'] = random.randint(1, 20)
-
-    uri = "neo4j://localhost:7687"
-    user = "neo4j"
-    password = "dklrtenzu011001010101"
-    db_name = "neo4j"
-
-    db_driver = GraphDatabaseDriver(uri, user, password, db_name)
-    for node in G.nodes():
-        db_driver.create_node(node)
-    for source, target, data in G.edges(data=True):
-        db_driver.create_edge(source, target, data['weight'])
-
-    positions = assign_random_coordinates(G)
-
-    # Plot the graph
-    plt.figure(figsize=(10, 8))
-    nx.draw(G, pos=positions, with_labels=True, node_size=700, node_color='skyblue')
-    edge_labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos=positions, edge_labels=edge_labels)
-    plt.axis('off')
-    plt.show()
-
-    return db_driver, G, positions
-
-def find_shortest_path(db_driver, start_node, end_node):
-    with db_driver.driver.session(database=db_driver.db_name) as session:
-        result = session.run("MATCH (start:Node {id: $start_id}), (end:Node {id: $end_id}) "
-                             "CALL apoc.algo.dijkstra(start, end, 'CONNECTS', 'weight') YIELD path, weight "
-                             "RETURN path, weight",
-                             start_id=start_node, end_id=end_node)
-        return result.single()
-
-def find_and_display_shortest_path(db_driver, G, positions):
-    start_node = int(input("Geben Sie den Startknoten ein: "))
-    end_node = int(input("Geben Sie den Zielknoten ein: "))
-
-    path_result = find_shortest_path(db_driver, start_node, end_node)
-
-    if path_result:
-        print("Shortest Path: ", path_result["path"])
-        print("Total Weight: ", path_result["weight"])
-
-        path_nodes = [node["id"] for node in path_result["path"].nodes]
-        path_edges = list(zip(path_nodes, path_nodes[1:]))
-
+    @staticmethod
+    def plot_path(G, positions, path):
         plt.figure(figsize=(10, 8))
         nx.draw(G, pos=positions, with_labels=True, node_size=700, node_color='skyblue')
-        nx.draw_networkx_nodes(G, pos=positions, nodelist=path_nodes, node_color='red', node_size=700)
+        path_edges = list(zip(path, path[1:]))
+        nx.draw_networkx_nodes(G, pos=positions, nodelist=path, node_color='red', node_size=700)
         nx.draw_networkx_edges(G, pos=positions, edgelist=path_edges, edge_color='red', width=2)
         edge_labels = nx.get_edge_attributes(G, 'weight')
         nx.draw_networkx_edge_labels(G, pos=positions, edge_labels=edge_labels)
         plt.axis('off')
         plt.show()
-    else:
-        print("Kein Pfad gefunden.")
 
+class GraphInterface:
+    def __init__(self):
+        self.db_driver = None
+        self.G = None
+        self.positions = None
 
+    def create_and_store_graph(self, n, p=1):
+        self.G = nx.erdos_renyi_graph(n, p)
+        for (u, v) in self.G.edges():
+            self.G.edges[u, v]['weight'] = random.randint(1, 20)
 
-def find_and_display_multi_point_path(db_driver, G, positions, nodes):
-    total_path_nodes = []
-    total_path_edges = []
-    total_weight = 0
+        uri = "neo4j://localhost:7687"
+        user = "neo4j"
+        password = "dklrtenzu011001010101"  # Replace with your actual password
+        db_name = "neo4j"
 
-    for i in range(len(nodes) - 1):
-        start_node = nodes[i]
-        end_node = nodes[i + 1]
+        self.db_driver = GraphDatabaseDriver(uri, user, password, db_name)
+        for node in self.G.nodes():
+            self.db_driver.create_node(node)
+        for source, target, data in self.G.edges(data=True):
+            self.db_driver.create_edge(source, target, data['weight'])
 
-        path_result = find_shortest_path(db_driver, start_node, end_node)
-        if path_result:
-            print(f"Teilstrecke von {start_node} nach {end_node}: ", path_result["path"])
-            print("Gewicht der Teilstrecke: ", path_result["weight"])
-            
-            path_nodes = [node["id"] for node in path_result["path"].nodes]
-            path_edges = list(zip(path_nodes, path_nodes[1:]))
-            
-            total_path_nodes.extend(path_nodes if i == 0 else path_nodes[1:])
-            total_path_edges.extend(path_edges)
-            total_weight += path_result["weight"]
-        else:
-            print(f"Kein Pfad gefunden von {start_node} nach {end_node}.")
-            return
+        self.positions = GraphUtils.assign_random_coordinates(self.G)
+        self.plot_graph()
 
-    print("Gesamter Pfad: ", total_path_nodes)
-    print("Gesamtgewicht: ", total_weight)
-
-    plt.figure(figsize=(10, 8))
-    nx.draw(G, pos=positions, with_labels=True, node_size=700, node_color='skyblue')
-    nx.draw_networkx_nodes(G, pos=positions, nodelist=total_path_nodes, node_color='red', node_size=700)
-    nx.draw_networkx_edges(G, pos=positions, edgelist=total_path_edges, edge_color='red', width=2)
-    edge_labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos=positions, edge_labels=edge_labels)
-    plt.axis('off')
-    plt.show()
-
-def find_shortest_path_by_nodes_and_draw(G, positions, start_node, end_node):
-    try:
-        path = nx.shortest_path(G, source=start_node, target=end_node)
-        print(f"Kürzester Weg von {start_node} nach {end_node}: {path}")
-
-        # Visualisierung
+    def plot_graph(self):
         plt.figure(figsize=(10, 8))
-        nx.draw(G, pos=positions, with_labels=True, node_color='skyblue', node_size=500)
-
-        # Gewichte der Kanten holen und anzeigen
-        edge_weights = nx.get_edge_attributes(G, 'weight')
-        nx.draw_networkx_edge_labels(G, pos=positions, edge_labels=edge_weights)
-
-        # Hervorheben des kürzesten Weges
-        path_edges = list(zip(path, path[1:]))
-        nx.draw_networkx_nodes(G, pos=positions, nodelist=path, node_color='red', node_size=500)
-        nx.draw_networkx_edges(G, pos=positions, edgelist=path_edges, edge_color='red', width=2)
-
+        nx.draw(self.G, pos=self.positions, with_labels=True, node_size=700, node_color='skyblue')
+        edge_labels = nx.get_edge_attributes(self.G, 'weight')
+        nx.draw_networkx_edge_labels(self.G, pos=self.positions, edge_labels=edge_labels)
+        plt.axis('off')
         plt.show()
-        return path
-    except nx.NetworkXNoPath:
-        print(f"Kein Pfad gefunden zwischen {start_node} und {end_node}.")
-        return None
 
+    def interface_logic(self):
+        print("Welcome to the Graph Pathfinding Interface!")
+        transport_methods = ["1: Foot", "2: Bike", "3: Car", "4: Train"]
+        print("How would you like to travel?")
+        for method in transport_methods:
+            print(method)
+        transport_choice = input("Please choose your transport method by number (1-4): ")
+
+        print("Please enter your start and end nodes.")
+        start_node = int(input("Start node: "))
+        end_node = int(input("End node: "))
+
+        print("Choose your pathfinding strategy:")
+        print("1: Shortest path by distance")
+        print("2: Shortest path by number of nodes")
+        strategy_choice = input("Please choose your strategy by number (1-2): ")
+
+        if strategy_choice == "1":
+            path, length = GraphUtils.find_shortest_path(self.G, self.positions, start_node, end_node)
+            print(f"Shortest path by distance: {path} with total weight: {length}")
+        elif strategy_choice == "2":
+            path = nx.shortest_path(self.G, source=start_node, target=end_node)
+            GraphUtils.plot_path(self.G, self.positions, path)
+            print(f"Shortest path by nodes: {path}")
+        else:
+            print("Invalid choice.")
+
+    def main(self):
+        self.create_and_store_graph(10)  # Example: create a graph with 10 nodes
+        self.interface_logic()
+        if self.db_driver:
+            self.db_driver.close()
 
 if __name__ == "__main__":
-    db_driver, G, positions = create_and_store_graph2()
-    find_and_display_shortest_path(db_driver, G, positions)
-    db_driver.close()
+    graph_interface = GraphInterface()
+    graph_interface.main()
