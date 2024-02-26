@@ -3,6 +3,8 @@ import random
 from neo4j import GraphDatabase
 import matplotlib.pyplot as plt
 
+
+
 class GraphDatabaseDriver:
     def __init__(self, uri, user, password, db_name):
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
@@ -11,22 +13,24 @@ class GraphDatabaseDriver:
     def close(self):
         self.driver.close()
 
-    def create_node(self, node_id):
+    def create_nodes_and_edges(self, nodes, edges):
         with self.driver.session(database=self.db_name) as session:
-            session.execute_write(self._create_node_tx, node_id)
-
-    def create_edge(self, source, target, weight):
-        with self.driver.session(database=self.db_name) as session:
-            session.execute_write(self._create_edge_tx, source, target, weight)
+            session.write_transaction(self._create_nodes_and_edges_tx, nodes, edges)
 
     @staticmethod
-    def _create_node_tx(tx, node_id):
-        tx.run(f"CREATE (n:Node {{id: {node_id}}})")
+    def _create_nodes_and_edges_tx(tx, nodes, edges):
+        # Erstellen aller Knoten in einem Batch
+        query_create_nodes = "UNWIND $nodes AS node CREATE (:Node {id: node})"
+        tx.run(query_create_nodes, nodes=nodes)
 
-    @staticmethod
-    def _create_edge_tx(tx, source, target, weight):
-        tx.run(f"MATCH (a:Node {{id: {source}}}), (b:Node {{id: {target}}}) "
-               f"CREATE (a)-[:CONNECTS {{weight: {weight}}}]->(b)")
+        # Erstellen aller Kanten in einem Batch
+        query_create_edges = """
+        UNWIND $edges AS edge
+        MATCH (source:Node {id: edge.source}), (target:Node {id: edge.target})
+        CREATE (source)-[:CONNECTS {weight: edge.weight}]->(target)
+        """
+        tx.run(query_create_edges, edges=edges)
+
 
 def assign_random_coordinates(G, scale=100):
     positions = {}
@@ -34,36 +38,8 @@ def assign_random_coordinates(G, scale=100):
         positions[node] = (random.uniform(0, scale), random.uniform(0, scale))
     return positions
 
-def create_and_store_graph2():
-    n = int(input("Geben Sie die Anzahl der Knoten ein: "))
-    p = float(input("Geben Sie die Wahrscheinlichkeit für Kanten ein (0-1): "))
 
-    G = nx.erdos_renyi_graph(n, p)
-    for (u, v) in G.edges():
-        G.edges[u, v]['weight'] = random.randint(1, 20)
 
-    uri = "neo4j://localhost:7687"
-    user = "neo4j"
-    password = "dklrtenzu011001010101"
-    db_name = "neo4j"
-
-    db_driver = GraphDatabaseDriver(uri, user, password, db_name)
-    for node in G.nodes():
-        db_driver.create_node(node)
-    for source, target, data in G.edges(data=True):
-        db_driver.create_edge(source, target, data['weight'])
-
-    positions = assign_random_coordinates(G)
-
-    # Plot the graph
-    plt.figure(figsize=(10, 8))
-    nx.draw(G, pos=positions, with_labels=True, node_size=700, node_color='skyblue')
-    edge_labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos=positions, edge_labels=edge_labels)
-    plt.axis('off')
-    plt.show()
-
-    return db_driver, G, positions
 
 def create_and_store_graph(Knoten):
     n = Knoten
@@ -75,14 +51,17 @@ def create_and_store_graph(Knoten):
 
     uri = "neo4j://localhost:7687"
     user = "neo4j"
-    password = "dklrtenzu011001010101"
+    password = "password"  # Use a placeholder or secure method to handle the password
     db_name = "neo4j"
 
     db_driver = GraphDatabaseDriver(uri, user, password, db_name)
-    for node in G.nodes():
-        db_driver.create_node(node)
-    for source, target, data in G.edges(data=True):
-        db_driver.create_edge(source, target, data['weight'])
+
+    # Prepare nodes and edges for batch creation
+    nodes = list(G.nodes())
+    edges = [(source, target, G.edges[source, target]['weight']) for source, target in G.edges()]
+
+    # Create nodes and edges in batch
+    db_driver.create_nodes_and_edges(nodes, edges)
 
     positions = assign_random_coordinates(G)
 
@@ -95,7 +74,7 @@ def create_and_store_graph(Knoten):
     plt.show()
 
     return db_driver, G, positions
-# ab hier
+
 def find_shortest_path(db_driver, start_node, end_node):
     with db_driver.driver.session(database=db_driver.db_name) as session:
         result = session.run("MATCH (start:Node {id: $start_id}), (end:Node {id: $end_id}) "
@@ -103,20 +82,6 @@ def find_shortest_path(db_driver, start_node, end_node):
                              "RETURN path, weight",
                              start_id=start_node, end_id=end_node)
         return result.single()
-    
-
-def find_shortest_path_nx(G, start_node, end_node, weight='weight'):
-    try:
-        path = nx.shortest_path(G, source=start_node, target=end_node, weight=weight)
-        path_length = nx.shortest_path_length(G, source=start_node, target=end_node, weight=weight)
-        return {'path': path, 'weight': path_length}
-    except nx.NetworkXNoPath:
-        print("Kein Pfad zwischen den Knoten gefunden.")
-        return None
-    except nx.NodeNotFound:
-        print("Start- oder Endknoten nicht im Graphen gefunden.")
-        return None
-
 
 def find_and_display_shortest_path(db_driver, G, positions):
     start_node = int(input("Geben Sie den Startknoten ein: "))
