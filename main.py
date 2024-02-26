@@ -95,7 +95,7 @@ def create_and_store_graph(Knoten):
     plt.show()
 
     return db_driver, G, positions
-
+# ab hier
 def find_shortest_path(db_driver, start_node, end_node):
     with db_driver.driver.session(database=db_driver.db_name) as session:
         result = session.run("MATCH (start:Node {id: $start_id}), (end:Node {id: $end_id}) "
@@ -103,6 +103,20 @@ def find_shortest_path(db_driver, start_node, end_node):
                              "RETURN path, weight",
                              start_id=start_node, end_id=end_node)
         return result.single()
+    
+
+def find_shortest_path_nx(G, start_node, end_node, weight='weight'):
+    try:
+        path = nx.shortest_path(G, source=start_node, target=end_node, weight=weight)
+        path_length = nx.shortest_path_length(G, source=start_node, target=end_node, weight=weight)
+        return {'path': path, 'weight': path_length}
+    except nx.NetworkXNoPath:
+        print("Kein Pfad zwischen den Knoten gefunden.")
+        return None
+    except nx.NodeNotFound:
+        print("Start- oder Endknoten nicht im Graphen gefunden.")
+        return None
+
 
 def find_and_display_shortest_path(db_driver, G, positions):
     start_node = int(input("Geben Sie den Startknoten ein: "))
