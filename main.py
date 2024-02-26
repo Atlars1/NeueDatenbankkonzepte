@@ -67,7 +67,7 @@ def create_and_store_graph2():
 
 def create_and_store_graph(Knoten):
     n = Knoten
-    p = 1
+    p = 0.3
 
     G = nx.erdos_renyi_graph(n, p)
     for (u, v) in G.edges():
