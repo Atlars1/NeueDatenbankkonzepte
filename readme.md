@@ -3,25 +3,19 @@ Abgabe_Neue_Daten_Bank_Konzepte
 Inhalt Verzweichnis:
 Readme.md
 Dokumentation
-main.py
+mainAbgabe.py
 docker-compose.yml
 requirements.txt
-
-Vorteiel einer NoSQL Datenbank bei der Erstellung eines ggewichteten Graphennetzwerkes und suche nach einem Pfad mit einer der Bedingungen:
-
-schnellster Pfad
-Pfad mit wenigsten Knoten
-Alternativer Pfad
-Pfad mit Zwischenziel
+(Entwicklungsprozess)
 
 
 Ersteller:
-Felix 
-Lars
-Chris
-Abgabetermine:
-Fach:
-Dozent:
+Felix Westhagen
+Lars Rudolph
+Christoph Hoffmann
+Abgabetermin: 31.03.2024
+Fach: Neue Datenbankkonzepte
+Dozent: Marvin Scharle, M. Sc.
 
 Setup
 Vorraussetzungen:Docker, Python 3.8
