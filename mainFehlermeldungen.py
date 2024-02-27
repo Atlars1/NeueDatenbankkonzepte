@@ -195,7 +195,6 @@ class GraphInterface:
             self.G.edges[node, neighbor]['weight'] = weight
 
     def interface_logic(self):
-##############################
         print("Welcome to the Graph Pathfinding Interface!")
         
         transport_methods = ["1: Foot", "2: Bike", "3: Car", "4: Train"]
@@ -289,7 +288,7 @@ class GraphInterface:
             else:
                 print("Invalid input. Please enter 1 or 2.")
 
-################################
+
         progress_bar = ProgressBar(total=2)  # Total steps for path finding
 
         if strategy_choice == "1":
@@ -336,9 +335,20 @@ class GraphInterface:
 
     def main(self):
         self.create_and_store_graph(10)
-        self.interface_logic()
-        if self.db_driver:
-            self.db_driver.close()
+        n = True
+        while n == True:
+            self.interface_logic()
+            if self.db_driver:
+                self.db_driver.close()
+            while True:
+                a = input("Do you want to find one more path choose 1 else 2: ")
+
+                if a in ['1', '2']:
+                    if a in ['2']:
+                        n = False
+                    break  # Gültige Eingabe, beendet die Schleife
+                else:
+                    print("Invalid input. Please enter 1 or 2.")
 
 if __name__ == "__main__":
     graph_interface = GraphInterface()
