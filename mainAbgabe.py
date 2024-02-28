@@ -268,7 +268,7 @@ class GraphInterface:
                 intermediate_node = int(input("Intermediate node (optional, enter -1 to skip): "))
 
                 # Überprüfen, ob die Eingabe -1 oder eine gültige Knotennummer ist
-                if intermediate_node == -1 or (0 < intermediate_node <= max_nodes and intermediate_node != avoid_node and intermediate_node != end_node and intermediate_node != start_node):
+                if intermediate_node == -1 or (-1 < intermediate_node <= max_nodes and intermediate_node != avoid_node and intermediate_node != end_node and intermediate_node != start_node):
                     break  # Gültige Eingabe, beendet die Schleife
                 else:
                     print(f"Invalid input. Please enter a number between 1 and {max_nodes}, or -1 to skip.")
